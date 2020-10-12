@@ -2,7 +2,7 @@
 
 使用 WebAssembly 技术将 RT-Thread 运行在浏览器上。
 
-## 开发环境准备
+## [开发环境准备](https://emscripten.org/docs/getting_started/downloads.html)
 
 ### 安装 Emscripten
 
