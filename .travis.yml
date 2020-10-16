@@ -1,0 +1,18 @@
+notifications:
+    email: false
+
+language: node_js
+node_js:
+- node
+
+sudo: required
+
+services:
+- docker
+
+before_install:
+- docker pull trzeci/emscripten:latest
+# - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:latest bash
+
+script:
+- docker run --rm -v `pwd`:`pwd` trzeci/emscripten:latest emcc hello.c -o hello.js
