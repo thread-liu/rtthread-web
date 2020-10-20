@@ -1,0 +1,19 @@
+language: shell
+
+services:
+  - docker
+
+git:
+  depth: 1
+
+notifications:
+  email: false
+
+before_install:
+  - docker pull trzeci/emscripten:latest
+
+install:
+  - sudo apt-get install python3-pip python3-setuptools python3-wheel -y
+
+script:
+  - docker run --rm -v `pwd`:/rt-thread/web trzeci/emscripten:latest bash -c "python /rt-thread/web/web.py"
