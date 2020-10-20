@@ -64,3 +64,9 @@ http://localhost:8080/hello.html
 ```
 
 通过这个例子我发现目前这个 demo 是等程序运行完才会在网页端显示，而不是能看到没延时 1s，打印一次 hello world!
+
+## Reference
+
+- [WebAssembly](https://en.wikipedia.org/wiki/WebAssembly)
+- [Dynamic Machine Code Generation. Google.](https://v8.dev/#mach_code)
+
