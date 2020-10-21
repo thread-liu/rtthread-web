@@ -8,6 +8,8 @@
  * 2020-10-21     thread-liu        the first version
  */
 
+#include <pthread.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <emscripten.h>
 #include <string.h>
@@ -82,49 +84,65 @@ EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void *user
     return 0;
 }
 
-static unsigned char read(void *buffer, unsigned short size)
-{
-    unsigned short count, rbsize, offset, i;
-    unsigned char *buf     = NULL; 
-    unsigned char *pBuffer = NULL;
+// static unsigned char read(void *buffer, unsigned short size)
+// {
+//     unsigned short count, rbsize, offset, i;
+//     unsigned char *buf     = NULL; 
+//     unsigned char *pBuffer = NULL;
     
     
-    pBuffer = (unsigned char*)buffer;
-    count   = dev_serial.serial.rbuf_count;
-    buf     = dev_serial.serial.rbuf;
+//     pBuffer = (unsigned char*)buffer;
+//     count   = dev_serial.serial.rbuf_count;
+//     buf     = dev_serial.serial.rbuf;
     
-    if (count == 0)
-    {
-        return 0;
-    }
+//     if (count == 0)
+//     {
+//         return 0;
+//     }
     
-    if (count >= size)
-    {
-        count = size;
-    } 
+//     if (count >= size)
+//     {
+//         count = size;
+//     } 
 
-    offset = dev_serial.serial.rbuf_start;
-    rbsize = dev_serial.serial.rbuf_size;
+//     offset = dev_serial.serial.rbuf_start;
+//     rbsize = dev_serial.serial.rbuf_size;
  
-    for (i = 0; i < count; i++)
-    {
-        *pBuffer++ = buf[offset++];
-        if (offset > rbsize)
-        {
-           offset = 0;  
-        }
-    }
+//     for (i = 0; i < count; i++)
+//     {
+//         *pBuffer++ = buf[offset++];
+//         if (offset > rbsize)
+//         {
+//            offset = 0;  
+//         }
+//     }
 
-    dev_serial.serial.rbuf_start  = offset;
-    dev_serial.serial.rbuf_count -= count;
+//     dev_serial.serial.rbuf_start  = offset;
+//     dev_serial.serial.rbuf_count -= count;
     
-    return count;
+//     return count;
+// }
+
+void *thread_main(void *arg)
+{
+    EMSCRIPTEN_RESULT ret = emscripten_set_keypress_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, key_callback);
+
+    EM_ASM(noExitRuntime = true);
+
+    return 0;
 }
 
 int main()
 {
+    int err = 0;
     unsigned char rbuf[24];
     unsigned char ch = 0, i = 0;
+    pthread_t thread;
+
+    err = pthread_create(&thread, NULL, thread_main, NULL); 
+    if (err != 0)
+        printf("can't create thread: %s\n", strerror(err));
+    emscripten_unwind_to_js_event_loop();
 
     EMSCRIPTEN_RESULT ret = emscripten_set_keypress_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, key_callback);
 
@@ -143,7 +161,6 @@ int main()
     // }
     /* For the events to function, one must either call emscripten_set_main_loop or enable Module.noExitRuntime by some other means.
         Otherwise the application will exit after leaving main(), and the atexit handlers will clean up all event hooks (by design). */
-    EM_ASM(noExitRuntime = true);
 
     return 0;
 }
