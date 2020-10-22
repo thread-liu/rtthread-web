@@ -15,7 +15,7 @@ def init_logger():
 
 def main():
     init_logger()
-    os.chdir("/rt-thread/web/hello")
+    os.chdir("/rt-thread/web/rt-thread-3.1.3")
 
     logging.info("build before : ")
     os.system("ls -al")
@@ -23,10 +23,6 @@ def main():
     os.system("emcc --version")
 
     os.system("emmake make")
-
-    os.system("emcc -g hello.o -o hello.js")
-
-    os.system("emcc -g hello.o -o hello.html")
 
     logging.info("build after : ")
     os.system("ls -al")
