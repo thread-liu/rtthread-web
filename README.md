@@ -65,6 +65,7 @@ http://localhost:8080/hello.html
 
 通过这个例子我发现目前这个 demo 是等程序运行完才会在网页端显示，而不是能看到没延时 1s，打印一次 hello world!
 
+
 ### 工具
 
 https://github.com/WebAssembly/binaryen
@@ -84,3 +85,9 @@ emcc 优化代码：https://cunzaizhuyi.github.io/emcscripten-Optimizing-Code/
 emcc 命令行参数： https://blog.csdn.net/weixin_34235371/article/details/88962382?utm_medium=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param
 
 JS 调用 C 代码：https://developer.mozilla.org/zh-CN/docs/WebAssembly/C_to_wasm
+
+## Reference
+
+- [WebAssembly](https://en.wikipedia.org/wiki/WebAssembly)
+- [Dynamic Machine Code Generation. Google.](https://v8.dev/#mach_code)
+
