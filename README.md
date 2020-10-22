@@ -77,3 +77,10 @@ https://github.com/emscripten-core/emscripten
 
   The size of JSC.wasm is around 4MB (compressed js and mem file).
 
+### 参考链接
+
+emcc 优化代码：https://cunzaizhuyi.github.io/emcscripten-Optimizing-Code/
+
+emcc 命令行参数： https://blog.csdn.net/weixin_34235371/article/details/88962382?utm_medium=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param
+
+JS 调用 C 代码：https://developer.mozilla.org/zh-CN/docs/WebAssembly/C_to_wasm

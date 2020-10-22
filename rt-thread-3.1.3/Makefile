@@ -1,20 +1,8 @@
 C_SOURCES =  \
 main.c \
-src/clock.c \
-src/components.c \
-src/idle.c \
-src/ipc.c \
-src/irq.c \
-src/kservice.c \
-src/mem.c \
-src/object.c \
-src/scheduler.c \
-src/thread.c \
-src/timer.c \
-components/finsh/shell.c \
-components/finsh/cmd.c \
-components/finsh/msh.c \
-libcpu/posix/cpu_port.c 
+drivers/*.c \
+src/*.c \
+libcpu/posix/*.c
 
 C_INCLUDES =  \
 -I. \
@@ -23,9 +11,8 @@ C_INCLUDES =  \
 -Icomponents/finsh 
 
 rtthread: rtthread.o
-	emcc $(C_SOURCES) $(C_INCLUDES) -pthread -s WASM=1 -o rtthread.html
+	emcc $(C_SOURCES) $(C_INCLUDES) -pthread -D_GNU_SOURCE -O0 -v --memoryprofiler -s WASM=1 -o rtthread.html
 rtthread.o: $(C_SOURCES)
 
 clean:
-	rm -rf rtthread rtthread.o
-
+	rm -rf rtthread rtthread.o rtthread.wasm rtthread.js rtthread.html rtthread.worker.js
