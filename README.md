@@ -65,6 +65,12 @@ http://localhost:8080/hello.html
 
 通过这个例子我发现目前这个 demo 是等程序运行完才会在网页端显示，而不是能看到没延时 1s，打印一次 hello world!
 
+### 工具
+
+https://github.com/WebAssembly/binaryen
+
+https://github.com/emscripten-core/emscripten
+
 ### Demo
 
 - [JSC](https://mbbill.github.io/JSC.js/demo/index.html).js** is a JavaScript engine which can run on top of you browser's JavaScript engine. It's based on the JavaScript engine (JavaScriptCore) of WebKit and compiled to wasm with emscripten. Therefore, if you're using Safari, you are literally running its JavaScript engine on top of itself.
