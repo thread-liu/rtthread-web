@@ -66,7 +66,7 @@ http://localhost:8080/hello.html
 通过这个例子我发现目前这个 demo 是等程序运行完才会在网页端显示，而不是能看到没延时 1s，打印一次 hello world!
 
 
-### 工具
+### Tools
 
 https://github.com/WebAssembly/binaryen
 
@@ -78,16 +78,19 @@ https://github.com/emscripten-core/emscripten
 
   The size of JSC.wasm is around 4MB (compressed js and mem file).
 
-### 参考链接
+### Reference
 
-emcc 优化代码：https://cunzaizhuyi.github.io/emcscripten-Optimizing-Code/
+- emcc 优化代码：https://cunzaizhuyi.github.io/emcscripten-Optimizing-Code/
 
-emcc 命令行参数： https://blog.csdn.net/weixin_34235371/article/details/88962382?utm_medium=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param
+- emcc 命令行参数： https://blog.csdn.net/weixin_34235371/article/details/88962382?utm_medium=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-BlogCommendFromMachineLearnPai2-1.channel_param
 
-JS 调用 C 代码：https://developer.mozilla.org/zh-CN/docs/WebAssembly/C_to_wasm
-
-## Reference
+- JS 调用 C 代码：https://developer.mozilla.org/zh-CN/docs/WebAssembly/C_to_wasm
 
 - [WebAssembly](https://en.wikipedia.org/wiki/WebAssembly)
 - [Dynamic Machine Code Generation. Google.](https://v8.dev/#mach_code)
 
+### To Be Solved
+
+- [ ] emcc 如何指定函数入口 (entry)
+- [ ] 实现虚拟 serial，接管 Finsh 
+- [ ] JS 交互界面，实现简单的输入，输出界面 ，如上面的 Demo 所示。

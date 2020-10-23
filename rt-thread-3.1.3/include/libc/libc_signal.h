@@ -178,6 +178,62 @@ struct sigaction
 
 int sigprocmask (int how, const sigset_t *set, sigset_t *oset);
 int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
+
+#elif defined(__GNUC__)
+#include <signal.h>
+typedef unsigned long sigset_t;
+
+#define SIGHUP       1
+/* #define SIGINT       2 */
+#define SIGQUIT      3
+/* #define SIGILL       4 */
+#define SIGTRAP      5
+/* #define SIGABRT      6 */
+#define SIGEMT       7
+/* #define SIGFPE       8 */
+#define SIGKILL      9
+#define SIGBUS      10
+/* #define SIGSEGV     11 */
+#define SIGSYS      12
+#define SIGPIPE     13
+#define SIGALRM     14
+/* #define SIGTERM     15 */
+#define SIGURG      16
+#define SIGSTOP     17
+#define SIGTSTP     18
+#define SIGCONT     19
+#define SIGCHLD     20
+#define SIGTTIN     21
+#define SIGTTOU     22
+#define SIGPOLL     23
+#define SIGWINCH    24
+/* #define SIGUSR1     25 */
+/* #define SIGUSR2     26 */
+#define SIGRTMIN    27
+#define SIGRTMAX    31
+#define NSIG        32
+
+#define SIG_SETMASK 0   /* set mask with sigprocmask() */
+#define SIG_BLOCK   1   /* set of signals to block */
+#define SIG_UNBLOCK 2   /* set of signals to, well, unblock */
+
+typedef void (*_sig_func_ptr)(int);
+
+struct sigaction 
+{
+    _sig_func_ptr sa_handler;
+    sigset_t sa_mask;
+    int sa_flags;
+};
+
+#define sigaddset(what,sig) (*(what) |= (1<<(sig)), 0)
+#define sigdelset(what,sig) (*(what) &= ~(1<<(sig)), 0)
+#define sigemptyset(what)   (*(what) = 0, 0)
+#define sigfillset(what)    (*(what) = ~(0), 0)
+#define sigismember(what,sig) (((*(what)) & (1<<(sig))) != 0)
+
+int sigprocmask (int how, const sigset_t *set, sigset_t *oset);
+int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
 #endif
 
 #ifdef __cplusplus
@@ -185,4 +241,3 @@ int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact)
 #endif
 
 #endif
-

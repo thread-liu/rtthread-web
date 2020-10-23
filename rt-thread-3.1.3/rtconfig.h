@@ -3,6 +3,7 @@
 #ifndef __RTTHREAD_CFG_H__
 #define __RTTHREAD_CFG_H__
 
+#define RT_USING_FINSH
 // <<< Use Configuration Wizard in Context Menu >>>
 // <h>Basic Configuration
 // <o>Maximal level of thread priority <8-256>
@@ -95,7 +96,7 @@
 // <h>Memory Management Configuration
 // <c1>Dynamic Heap Management
 //  <i>Dynamic Heap Management
-//#define RT_USING_HEAP
+#define RT_USING_HEAP
 // </c>
 // <c1>Using Small Memory
 //  <i>Using Small Memory
@@ -110,13 +111,13 @@
 // <h>Console Configuration
 // <c1>Using console
 //  <i>Using console
-//#define RT_USING_CONSOLE
+#define RT_USING_CONSOLE
 // </c>
 // <o>the buffer size of console <1-1024>
 //  <i>the buffer size of console
 //  <i>Default: 128  (128Byte)
-#define RT_CONSOLEBUF_SIZE          128
 // </h>
+#define RT_CONSOLEBUF_SIZE          128
 
 
 #if defined(RTE_USING_FINSH)
@@ -140,6 +141,10 @@
 
     #define FINSH_USING_SYMTAB
     // </h>
+#endif
+
+#ifndef CONFIG_HEAP_SIZE
+# define CONFIG_HEAP_SIZE              	(64 * 1024)
 #endif
 
 // <<< end of configuration section >>>

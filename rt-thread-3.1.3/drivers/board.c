@@ -16,10 +16,15 @@
 /**
  * This function will initialize beaglebone board
  */
+static rt_uint8_t rtt_heap[CONFIG_HEAP_SIZE];
+
 void rt_hw_board_init(void)
 {
     /* initialize system heap */
-    // rt_system_heap_init(HEAP_BEGIN, HEAP_END);
+#ifdef RT_USING_HEAP
+        /* init heap */
+    rt_system_heap_init((void *)&rtt_heap, (void *)&rtt_heap[CONFIG_HEAP_SIZE-1]);
+#endif
 
     rt_components_board_init();
     // rt_console_set_device(RT_CONSOLE_DEVICE_NAME);

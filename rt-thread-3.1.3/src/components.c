@@ -18,6 +18,7 @@
 
 #include <rthw.h>
 #include <rtthread.h>
+#include <stdio.h>
 
 #ifdef RT_USING_USER_MAIN
 #ifndef RT_MAIN_THREAD_STACK_SIZE
@@ -171,7 +172,7 @@ struct rt_thread main_thread;
 /* the system main thread */
 void main_thread_entry(void *parameter)
 {
-    extern int main(void);
+    extern int rtt_main(void);
     extern int $Super$$main(void);
 
     /* RT-Thread components initialization */
@@ -181,7 +182,7 @@ void main_thread_entry(void *parameter)
 #if defined(__CC_ARM) || defined(__CLANG_ARM)
     $Super$$main(); /* for ARMCC. */
 #elif defined(__ICCARM__) || defined(__GNUC__)
-    main();
+    rtt_main();
 #endif
 }
 
@@ -197,7 +198,7 @@ void rt_application_init(void)
     rt_err_t result;
 
     tid = &main_thread;
-    result = rt_thread_init(tid, "main", main_thread_entry, RT_NULL,
+    result = rt_thread_init(tid, "rtt_main", main_thread_entry, RT_NULL,
                             main_stack, sizeof(main_stack), RT_MAIN_THREAD_PRIORITY, 20);
     RT_ASSERT(result == RT_EOK);
 	
@@ -222,7 +223,7 @@ int rtthread_startup(void)
 
     /* timer system initialization */
     rt_system_timer_init();
-
+    
     /* scheduler system initialization */
     rt_system_scheduler_init();
 

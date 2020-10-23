@@ -8,44 +8,182 @@
  * 2020-10-21     thread-liu        the first version
  */
 
+#include <rtthread.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <emscripten.h>
 #include <string.h>
-#include <emscripten/html5.h>
 #include "serial.h"
 
-static unsigned char rx_buffer[MAX_BUFFER_SIZE];
-static unsigned char tx_buffer[MAX_BUFFER_SIZE];
+#if defined(__EMSCRIPTEN__) 
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
 
-struct rthw_serial
+/* ringbuffer */
+#define rt_ringbuffer_space_len(rb) ((rb)->buffer_size - rt_ringbuffer_data_len(rb))
+
+struct rt_ringbuffer
 {
-    struct rt_serial serial;
-};
-static struct rthw_serial dev_serial;
+    rt_uint8_t *buffer_ptr;
 
-const char *emscripten_result_to_string(EMSCRIPTEN_RESULT result) {
-  if (result == EMSCRIPTEN_RESULT_SUCCESS) return "EMSCRIPTEN_RESULT_SUCCESS";
-  if (result == EMSCRIPTEN_RESULT_DEFERRED) return "EMSCRIPTEN_RESULT_DEFERRED";
-  if (result == EMSCRIPTEN_RESULT_NOT_SUPPORTED) return "EMSCRIPTEN_RESULT_NOT_SUPPORTED";
-  if (result == EMSCRIPTEN_RESULT_FAILED_NOT_DEFERRED) return "EMSCRIPTEN_RESULT_FAILED_NOT_DEFERRED";
-  if (result == EMSCRIPTEN_RESULT_INVALID_TARGET) return "EMSCRIPTEN_RESULT_INVALID_TARGET";
-  if (result == EMSCRIPTEN_RESULT_UNKNOWN_TARGET) return "EMSCRIPTEN_RESULT_UNKNOWN_TARGET";
-  if (result == EMSCRIPTEN_RESULT_INVALID_PARAM) return "EMSCRIPTEN_RESULT_INVALID_PARAM";
-  if (result == EMSCRIPTEN_RESULT_FAILED) return "EMSCRIPTEN_RESULT_FAILED";
-  if (result == EMSCRIPTEN_RESULT_NO_DATA) return "EMSCRIPTEN_RESULT_NO_DATA";
-  return "Unknown EMSCRIPTEN_RESULT!";
+    rt_uint16_t read_mirror : 1;
+    rt_uint16_t read_index : 15;
+    rt_uint16_t write_mirror : 1;
+    rt_uint16_t write_index : 15;
+
+    rt_int16_t buffer_size;
+};
+
+enum rt_ringbuffer_state
+{
+    RT_RINGBUFFER_EMPTY,
+    RT_RINGBUFFER_FULL,
+    /* half full is neither full nor empty */
+    RT_RINGBUFFER_HALFFULL,
+};
+
+rt_inline enum rt_ringbuffer_state rt_ringbuffer_status(struct rt_ringbuffer *rb)
+{
+    if (rb->read_index == rb->write_index)
+    {
+        if (rb->read_mirror == rb->write_mirror)
+            return RT_RINGBUFFER_EMPTY;
+        else
+            return RT_RINGBUFFER_FULL;
+    }
+    return RT_RINGBUFFER_HALFFULL;
+}
+
+/** 
+ * get the size of data in rb 
+ */
+rt_size_t rt_ringbuffer_data_len(struct rt_ringbuffer *rb)
+{
+    switch (rt_ringbuffer_status(rb))
+    {
+    case RT_RINGBUFFER_EMPTY:
+        return 0;
+    case RT_RINGBUFFER_FULL:
+        return rb->buffer_size;
+    case RT_RINGBUFFER_HALFFULL:
+    default:
+        if (rb->write_index > rb->read_index)
+            return rb->write_index - rb->read_index;
+        else
+            return rb->buffer_size - (rb->read_index - rb->write_index);
+    };
+}
+
+void rt_ringbuffer_init(struct rt_ringbuffer *rb,
+                        rt_uint8_t           *pool,
+                        rt_int16_t            size)
+{
+    RT_ASSERT(rb != RT_NULL);
+    RT_ASSERT(size > 0);
+
+    /* initialize read and write index */
+    rb->read_mirror = rb->read_index = 0;
+    rb->write_mirror = rb->write_index = 0;
+
+    /* set buffer pool and size */
+    rb->buffer_ptr = pool;
+    rb->buffer_size = RT_ALIGN_DOWN(size, RT_ALIGN_SIZE);
+}
+
+/**
+ * put a character into ring buffer
+ */
+rt_size_t rt_ringbuffer_putchar(struct rt_ringbuffer *rb, const rt_uint8_t ch)
+{
+    RT_ASSERT(rb != RT_NULL);
+
+    /* whether has enough space */
+    if (!rt_ringbuffer_space_len(rb))
+        return 0;
+
+    rb->buffer_ptr[rb->write_index] = ch;
+
+    /* flip mirror */
+    if (rb->write_index == rb->buffer_size-1)
+    {
+        rb->write_mirror = ~rb->write_mirror;
+        rb->write_index = 0;
+    }
+    else
+    {
+        rb->write_index++;
+    }
+
+    return 1;
+}
+/**
+ * get a character from a ringbuffer
+ */
+rt_size_t rt_ringbuffer_getchar(struct rt_ringbuffer *rb, rt_uint8_t *ch)
+{
+    RT_ASSERT(rb != RT_NULL);
+
+    /* ringbuffer is empty */
+    if (!rt_ringbuffer_data_len(rb))
+        return 0;
+
+    /* put character */
+    *ch = rb->buffer_ptr[rb->read_index];
+
+    if (rb->read_index == rb->buffer_size-1)
+    {
+        rb->read_mirror = ~rb->read_mirror;
+        rb->read_index = 0;
+    }
+    else
+    {
+        rb->read_index++;
+    }
+
+    return 1;
+}
+
+/* emscripten virtual serial */
+const char *emscripten_result_to_string(EMSCRIPTEN_RESULT result) 
+{
+    if (result == EMSCRIPTEN_RESULT_SUCCESS) 
+        return "EMSCRIPTEN_RESULT_SUCCESS";
+    if (result == EMSCRIPTEN_RESULT_DEFERRED) 
+        return "EMSCRIPTEN_RESULT_DEFERRED";
+    if (result == EMSCRIPTEN_RESULT_NOT_SUPPORTED) 
+        return "EMSCRIPTEN_RESULT_NOT_SUPPORTED";
+    if (result == EMSCRIPTEN_RESULT_FAILED_NOT_DEFERRED) 
+        return "EMSCRIPTEN_RESULT_FAILED_NOT_DEFERRED";
+    if (result == EMSCRIPTEN_RESULT_INVALID_TARGET) 
+        return "EMSCRIPTEN_RESULT_INVALID_TARGET";
+    if (result == EMSCRIPTEN_RESULT_UNKNOWN_TARGET) 
+        return "EMSCRIPTEN_RESULT_UNKNOWN_TARGET";
+    if (result == EMSCRIPTEN_RESULT_INVALID_PARAM) 
+        return "EMSCRIPTEN_RESULT_INVALID_PARAM";
+    if (result == EMSCRIPTEN_RESULT_FAILED) 
+        return "EMSCRIPTEN_RESULT_FAILED";
+    if (result == EMSCRIPTEN_RESULT_NO_DATA) 
+        return "EMSCRIPTEN_RESULT_NO_DATA";
+
+    return "Unknown EMSCRIPTEN_RESULT!";
 }
 
 #define TEST_RESULT(x) if (ret != EMSCRIPTEN_RESULT_SUCCESS) printf("%s returned %s.\n", #x, emscripten_result_to_string(ret));
 
-static inline const char *emscripten_event_type_to_string(int eventType) {
-  const char *events[] = { "(invalid)", "(none)", "keypress", "keydown", "keyup", "(invalid)" };
-  ++eventType;
-  if (eventType < 0) eventType = 0;
-  if (eventType >= sizeof(events)/sizeof(events[0])) eventType = sizeof(events)/sizeof(events[0])-1;
-  return events[eventType];
+static inline const char *emscripten_event_type_to_string(int eventType) 
+{
+    const char *events[] = { "(invalid)", "(none)", "keypress", "keydown", "keyup", "(invalid)" };
+    ++eventType;
+    if (eventType < 0) 
+    {
+        eventType = 0;
+    }
+    if (eventType >= sizeof(events)/sizeof(events[0]))
+    { 
+        eventType = sizeof(events)/sizeof(events[0])-1;
+    }
+    return events[eventType];
 }
 
 // The event handler functions can return 1 to suppress the event and disable the default action. That calls event.preventDefault();
@@ -53,77 +191,18 @@ static inline const char *emscripten_event_type_to_string(int eventType) {
 EM_BOOL key_callback(int eventType, const EmscriptenKeyboardEvent *e, void *userData)
 {
 
-    unsigned short rx_size = 0, i = 0;
-    unsigned short count, size, offset;
-    unsigned char *buf = NULL;
-    
-    // if (eventType != EMSCRIPTEN_EVENT_KEYPRESS)
-    //     return 0;
+    if (eventType != EMSCRIPTEN_EVENT_KEYPRESS)
+        return 0;
 
-    // buf    = dev_serial.serial.rbuf; 
-    // count  = dev_serial.serial.rbuf_count;
-    // size   = dev_serial.serial.rbuf_size;
-    // offset = dev_serial.serial.rbuf_start + count;
-    printf("%s, key: \"%s\", code: \"%s\", location: %lu,%s%s%s%s repeat: %d, locale: \"%s\", char: \"%s\", charCode: %lu, keyCode: %lu, which: %lu\n",
-        emscripten_event_type_to_string(eventType), e->key, e->code, e->location, 
-        e->ctrlKey ? " CTRL" : "", e->shiftKey ? " SHIFT" : "", e->altKey ? " ALT" : "", e->metaKey ? " META" : "", 
+    rt_kprintf("%s, key: \"%s\", code: \"%s\", location: %lu,%s%s%s%s repeat: %d, locale: \"%s\", char: \"%s\", charCode: %lu, keyCode: %lu, which: %lu\n",
+        emscripten_event_type_to_string(eventType), e->key, e->code, e->location,
+        e->ctrlKey ? " CTRL" : "", e->shiftKey ? " SHIFT" : "", e->altKey ? " ALT" : "", e->metaKey ? " META" : "",
         e->repeat, e->locale, e->charValue, e->charCode, e->keyCode, e->which);
-    // if (count < size)
-    // {
-    //     if (offset >= size)
-    //     {
-    //         offset -= size;
-    //     }
-        
-    //     buf[offset++] = e->key;
-    //     count++;
-    // }
-
-    // dev_serial.serial.rbuf_count = count;
 
     return 0;
 }
 
-// static unsigned char read(void *buffer, unsigned short size)
-// {
-//     unsigned short count, rbsize, offset, i;
-//     unsigned char *buf     = NULL; 
-//     unsigned char *pBuffer = NULL;
-    
-    
-//     pBuffer = (unsigned char*)buffer;
-//     count   = dev_serial.serial.rbuf_count;
-//     buf     = dev_serial.serial.rbuf;
-    
-//     if (count == 0)
-//     {
-//         return 0;
-//     }
-    
-//     if (count >= size)
-//     {
-//         count = size;
-//     } 
-
-//     offset = dev_serial.serial.rbuf_start;
-//     rbsize = dev_serial.serial.rbuf_size;
- 
-//     for (i = 0; i < count; i++)
-//     {
-//         *pBuffer++ = buf[offset++];
-//         if (offset > rbsize)
-//         {
-//            offset = 0;  
-//         }
-//     }
-
-//     dev_serial.serial.rbuf_start  = offset;
-//     dev_serial.serial.rbuf_count -= count;
-    
-//     return count;
-// }
-
-void *thread_main(void *arg)
+void *thread_serial(void *arg)
 {
     EMSCRIPTEN_RESULT ret = emscripten_set_keypress_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, key_callback);
 
@@ -132,35 +211,18 @@ void *thread_main(void *arg)
     return 0;
 }
 
-int main()
+void rt_hw_console_output(const char *str)
 {
-    int err = 0;
-    unsigned char rbuf[24];
-    unsigned char ch = 0, i = 0;
-    pthread_t thread;
+    char a = '\r';
 
-    err = pthread_create(&thread, NULL, thread_main, NULL); 
-    if (err != 0)
-        printf("can't create thread: %s\n", strerror(err));
-    emscripten_unwind_to_js_event_loop();
+    printf(str);
+    printf(a);
+}
 
-    EMSCRIPTEN_RESULT ret = emscripten_set_keypress_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, key_callback);
+char rt_hw_console_getchar(void)
+{
+    int ch = -1;
 
-    // ret = emscripten_set_keydown_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, key_callback);
-    // TEST_RESULT(emscripten_set_keydown_callback);
-    // ret = emscripten_set_keyup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, 0, 1, key_callback);
-    // TEST_RESULT(emscripten_set_keyup_callback);
 
-    // ch = read(rbuf, 24);
-    // if (ch != 0)
-    // {
-    //     for (i = 0; i < ch; i++)
-    //     {
-    //         printf("%c", rbuf[0]);
-    //     }
-    // }
-    /* For the events to function, one must either call emscripten_set_main_loop or enable Module.noExitRuntime by some other means.
-        Otherwise the application will exit after leaving main(), and the atexit handlers will clean up all event hooks (by design). */
-
-    return 0;
+    return ch;
 }
